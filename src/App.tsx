@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, gql, useMutation } from "@apollo/client";
 import {
   Spinner,
@@ -24,6 +24,12 @@ import {
   FormLabel,
   Input,
   Select,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
 } from "@chakra-ui/react";
 
 // graphQL query to fetch customers data ---->  (altered the get_customer to fectch city_id for edit functionality)
@@ -70,8 +76,26 @@ const ADD_CUSTOMER = gql`
 
 // gql mutation to update an existing customer
 const UPDATE_CUSTOMER = gql`
-  mutation UpdateCustomer($id: Int!, $name: String!, $email: String!, $role: String!, $cityId: Int!) {
-    update_customers_by_pk(pk_columns: { id: $id }, _set: { name: $name, email: $email, role: $role, city_id: $cityId }) {
+  mutation UpdateCustomer(
+    $id: Int!
+    $name: String!
+    $email: String!
+    $role: String!
+    $cityId: Int!
+  ) {
+    update_customers_by_pk(
+      pk_columns: { id: $id }
+      _set: { name: $name, email: $email, role: $role, city_id: $cityId }
+    ) {
+      id
+    }
+  }
+`;
+
+//gql to delete a customer
+const DELETE_CUSTOMER = gql`
+  mutation DeleteCustomer($id: Int!) {
+    delete_customers_by_pk(id: $id) {
       id
     }
   }
@@ -96,11 +120,19 @@ function App() {
     onCompleted: () => {
       refetch();
       setIsModalOpen(false);
-      setName('');
-      setEmail('');
-      setRole('');
-      setCityId('');
+      setName("");
+      setEmail("");
+      setRole("");
+      setCityId("");
       setEditingCustomer(null);
+    },
+  });
+
+  
+  const [deleteCustomer, { loading: deleting }] = useMutation(DELETE_CUSTOMER, {
+    onCompleted: () => {
+      refetch();
+      setCustomerToDelete(null);
     }
   });
 
@@ -110,6 +142,8 @@ function App() {
   const [role, setRole] = useState("");
   const [cityId, setCityId] = useState("");
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<any>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   // loading and error handling
   if (loading)
@@ -125,17 +159,37 @@ function App() {
         <Spinner size="xl" />
       </div>
     );
-  if (error) return <Text>Something went wrong: {error.message}</Text>;
+  if (error)
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          color: "red",
+          fontWeight: "bold",
+        }}
+      >
+        <Text>Something went wrong: {error.message}</Text>
+      </div>
+    );
 
   //save new customer data to the database or update existing customer data
   const handleSave = () => {
     if (editingCustomer) {
       updateCustomer({
-        variables: { id: editingCustomer.id, name, email, role, cityId: Number(cityId) }
+        variables: {
+          id: editingCustomer.id,
+          name,
+          email,
+          role,
+          cityId: Number(cityId),
+        },
       });
     } else {
       addCustomer({
-        variables: { name, email, role, cityId: Number(cityId) }
+        variables: { name, email, role, cityId: Number(cityId) },
       });
     }
   };
@@ -148,6 +202,11 @@ function App() {
     setRole(customer.role);
     setCityId(String(customer.city_id));
     setIsModalOpen(true);
+  };
+
+  //handle delete customer logic
+  const handleDelete = () => {
+    deleteCustomer({ variables: { id: customerToDelete.id } });
   };
 
   // if everthing is fine show table data
@@ -192,8 +251,20 @@ function App() {
                 <Td>{customer.role}</Td>
                 <Td>{customer.city.name}</Td>
                 <Td>
-                  <Button size="sm" onClick={() => handleEditClick(customer)}>
+                  <Button
+                    colorScheme="green"
+                    size="sm"
+                    mr="3"
+                    onClick={() => handleEditClick(customer)}
+                  >
                     Edit
+                  </Button>
+                  <Button
+                    colorScheme="red"
+                    size="sm"
+                    onClick={() => setCustomerToDelete(customer)}
+                  >
+                    Delete
                   </Button>
                 </Td>
               </Tr>
@@ -214,15 +285,27 @@ function App() {
           <ModalBody>
             <FormControl mb="3">
               <FormLabel>Name</FormLabel>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter name" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter name"
+              />
             </FormControl>
             <FormControl mb="3">
               <FormLabel>Email</FormLabel>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+              />
             </FormControl>
             <FormControl mb="3">
               <FormLabel>Role</FormLabel>
-              <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Enter role" />
+              <Input
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="Enter role"
+              />
             </FormControl>
             <FormControl mb="3">
               <FormLabel>City</FormLabel>
@@ -243,10 +326,41 @@ function App() {
             <Button mr={2} onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button colorScheme="blue" onClick={handleSave} isLoading={saving || updating}>Save</Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleSave}
+              isLoading={saving || updating}
+            >
+              Save
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Delete Customer Modal */}
+      <AlertDialog
+        isOpen={!!customerToDelete}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setCustomerToDelete(null)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Delete Customer</AlertDialogHeader>
+            <AlertDialogBody>
+              Are you sure you want to delete {customerToDelete?.name}'s Data? This
+              can't be undone.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setCustomerToDelete(null)} mr="3">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDelete} isLoading={deleting}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }

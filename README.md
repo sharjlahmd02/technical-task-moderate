@@ -20,3 +20,11 @@ Currently building the "Add New Customer" feature.
 ```
 npm install && npm start
 ```
+
+
+## What next?
+Now going to add basic login system with 2FA using the 2fa-kit.
+
+```
+npm install 2fa-kit
+```
