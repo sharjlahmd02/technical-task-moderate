@@ -22,8 +22,8 @@ npm install && npm start
 ```
 
 
-## What next?
-Now going to add basic login system with 2FA using the 2fa-kit.
+## What's New?
+Added the 2FA using 2fa-kit.
 
 ```
 npm install 2fa-kit
