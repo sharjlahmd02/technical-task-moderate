@@ -28,3 +28,12 @@ Added the 2FA using 2fa-kit.
 ```
 npm install 2fa-kit
 ```
+
+## Demo Task `2fa-kit`
+
+* [Demo Task of 2fa-kit GitHub Repository](https://github.com/sharjlahmd02/2fa-kit-implementation)
+
+
+## Read More About 2fa-kit
+
+* [2fa-kit GitHub Repository](https://github.com/amansoomro062/2fa-kit)
