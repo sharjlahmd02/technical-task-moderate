@@ -3,6 +3,7 @@ import dotenv from "dotenv"
 import bcrypt from "bcrypt"
 import { connectDB } from "./config/db.js"
 import { User } from "./models/User.js"
+import cors from "cors";
 
 
 //configuer dotenv
@@ -16,6 +17,8 @@ const app = express()
 
 //middleware
 app.use(express.json())
+app.use(cors())
+
 
 //routes
 app.get("/", async(req,res)=>{
