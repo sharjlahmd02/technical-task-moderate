@@ -4,6 +4,8 @@ import bcrypt from "bcrypt"
 import { connectDB } from "./config/db.js"
 import { User } from "./models/User.js"
 import cors from "cors";
+import { generateSecret, buildUri, createVault, verifyTotpWithDelta } from "2fa-kit"
+import QRCode from "qrcode"
 
 
 //configuer dotenv
@@ -44,6 +46,55 @@ app.post("/register", async (req, res) => {
   await User.create({ email, passwordHash });
 
   res.json({ message: "registered, please log in to set up 2FA" });
+});
+
+//login route
+app.post("/login", async (req, res) => {
+  const { email, password, code } = req.body;
+
+  //validate email 
+  const user = await User.findOne({ email });
+  if (!user) return res.status(401).json({ error: "invalid email or password" });
+
+  //check user exist
+  const passwordOk = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordOk) return res.status(401).json({ error: "invalid email or password" });
+
+  const vault = await createVault(process.env.MASTER_KEY)
+
+  // if use is not enrolled, no secret yet --> first time, show QR
+  if (!user.isEnrolled && !user.totpSecretEncrypted) {
+    const secret = await generateSecret();
+    const uri = buildUri({ label: user.email, secret, issuer: "MyApp" });
+    const { encrypted, salt } = await vault.encrypt(secret);
+
+    user.totpSecretEncrypted = encrypted;
+    user.totpSalt = salt;
+    await user.save();
+
+    const qrBuffer = await QRCode.toBuffer(uri);
+    return res.type("image/png").send(qrBuffer);
+  }
+
+  //if user is enrolled then ask for code
+  if (!code) {
+    return res.status(200).json({ requiresCode: true });
+  }
+
+  //decrypt secret
+  const secret = await vault.decrypt(user.totpSecretEncrypted, user.totpSalt);
+  const { valid, step } = await verifyTotpWithDelta(secret, code);
+
+  //validate code
+  if (!valid || step === undefined || step <= user.totpLastStep) {
+    return res.status(401).json({ error: "invalid code" });
+  }
+
+  user.totpLastStep = step;
+  if (!user.isEnrolled) user.isEnrolled = true;
+  await user.save();
+
+  res.json({ message: "login successful" });
 });
 
 //port
