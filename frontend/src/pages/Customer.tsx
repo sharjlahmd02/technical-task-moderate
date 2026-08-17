@@ -31,6 +31,7 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
 } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 
 // graphQL query to fetch customers data ---->  (altered the get_customer to fectch city_id for edit functionality)
 const GET_CUSTOMERS = gql`
@@ -128,12 +129,11 @@ function Customer() {
     },
   });
 
-  
   const [deleteCustomer, { loading: deleting }] = useMutation(DELETE_CUSTOMER, {
     onCompleted: () => {
       refetch();
       setCustomerToDelete(null);
-    }
+    },
   });
 
   //add new customer form fields
@@ -144,6 +144,15 @@ function Customer() {
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [customerToDelete, setCustomerToDelete] = useState<any>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+
+  //logout
+  const navigate = useNavigate();
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const logoutCancelRef = useRef<HTMLButtonElement>(null);
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
 
   // loading and error handling
   if (loading)
@@ -228,6 +237,10 @@ function Customer() {
         }}
       >
         Add New Record
+      </Button>
+
+      <Button mb="4" ml="3" onClick={() => setIsLogoutOpen(true)}>
+        Logout
       </Button>
 
       {/* table to show customer data */}
@@ -347,15 +360,49 @@ function Customer() {
           <AlertDialogContent>
             <AlertDialogHeader>Delete Customer</AlertDialogHeader>
             <AlertDialogBody>
-              Are you sure you want to delete {customerToDelete?.name}'s Data? This
-              can't be undone.
+              Are you sure you want to delete {customerToDelete?.name}'s Data?
+              This can't be undone.
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setCustomerToDelete(null)} mr="3">
+              <Button
+                ref={cancelRef}
+                onClick={() => setCustomerToDelete(null)}
+                mr="3"
+              >
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={handleDelete} isLoading={deleting}>
+              <Button
+                colorScheme="red"
+                onClick={handleDelete}
+                isLoading={deleting}
+              >
                 Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Logout */}
+      <AlertDialog
+        isOpen={isLogoutOpen}
+        leastDestructiveRef={logoutCancelRef}
+        onClose={() => setIsLogoutOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Log out</AlertDialogHeader>
+            <AlertDialogBody>Are you sure you want to log out?</AlertDialogBody>
+            <AlertDialogFooter>
+              <Button
+                ref={logoutCancelRef}
+                onClick={() => setIsLogoutOpen(false)}
+                mr="3"
+              >
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleLogout}>
+                Logout
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

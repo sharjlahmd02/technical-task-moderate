@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { Box, Button, FormControl, FormLabel, Input, Text, Flex, Heading } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Text,
+  Flex,
+  Heading,
+  Link,
+} from "@chakra-ui/react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 type RegisterResponse = {
   message?: string;
@@ -12,6 +23,7 @@ function Register() {
   const [message, setMessage] = useState<string>("");
   const [isError, setIsError] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +46,7 @@ function Register() {
     }
 
     setIsError(false);
-    setMessage(data.message ?? "");
+    navigate("/login")
   };
 
   return (
@@ -74,16 +86,31 @@ function Register() {
             />
           </FormControl>
 
-          <Button type="submit" colorScheme="blue" width="100%" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            colorScheme="blue"
+            width="100%"
+            isLoading={isSubmitting}
+          >
             Register
           </Button>
 
           {message && (
-            <Text mt="4" color={isError ? "red.500" : "green.500"} textAlign="center">
+            <Text
+              mt="4"
+              color={isError ? "red.500" : "green.500"}
+              textAlign="center"
+            >
               {message}
             </Text>
           )}
         </form>
+        <Text mt="4" textAlign="center" fontSize="sm">
+          Already have an account?{" "}
+          <Link as={RouterLink} to="/login" color="blue.500">
+            Log in
+          </Link>
+        </Text>
       </Box>
     </Flex>
   );
