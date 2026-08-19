@@ -17,36 +17,44 @@ type RegisterResponse = {
   error?: string;
 };
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL as string;
+
 function Register() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [isError, setIsError] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage("");
-
-    const res = await fetch( process.env.BACKEND_URL as string, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data: RegisterResponse = await res.json();
-    setIsSubmitting(false);
-
-    if (!res.ok) {
-      setIsError(true);
-      setMessage(data.error ?? "something went wrong");
-      return;
-    }
-
     setIsError(false);
-    navigate("/login")
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data: RegisterResponse = await res.json();
+
+      if (!res.ok) {
+        setIsError(true);
+        setMessage(data.error ?? "something went wrong");
+        return;
+      }
+
+      navigate("/login");
+    } catch (err) {
+      setIsError(true);
+      setMessage("Could not reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

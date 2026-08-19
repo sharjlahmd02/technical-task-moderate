@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { Box, Button, FormControl, FormLabel, Input, Text, Flex, Heading, Image, Link } from "@chakra-ui/react";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL as string;
+
 function Login() {
   const navigate = useNavigate();
 
@@ -19,34 +21,41 @@ function Login() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage("");
+    setIsError(false);
 
-    const res = await fetch(process.env.BACKEND_URL as string, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch(`${BACKEND_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setIsSubmitting(false);
-    const contentType = res.headers.get("content-type") ?? "";
+      const contentType = res.headers.get("content-type") ?? "";
 
-    if (contentType.includes("image")) {
-      // first time login -> got a QR code back
-      const blob = await res.blob();
-      setQrUrl(URL.createObjectURL(blob));
-      setStep("code");
-      return;
-    }
+      if (contentType.includes("image")) {
+        // first time login -> got a QR code back
+        const blob = await res.blob();
+        setQrUrl(URL.createObjectURL(blob));
+        setStep("code");
+        return;
+      }
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setIsError(true);
+        setMessage(data.error ?? "something went wrong");
+        return;
+      }
+
+      if (data.requiresCode) {
+        setStep("code"); // already enrolled, no QR needed, just ask for code
+      }
+    } catch (err) {
       setIsError(true);
-      setMessage(data.error ?? "something went wrong");
-      return;
-    }
-
-    if (data.requiresCode) {
-      setStep("code"); // already enrolled, no QR needed, just ask for code
+      setMessage("Could not reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -55,23 +64,30 @@ function Login() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage("");
+    setIsError(false);
 
-    const res = await fetch("http://localhost:5000/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, code }),
-    });
+    try {
+      const res = await fetch(`${BACKEND_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, code }),
+      });
 
-    const data = await res.json();
-    setIsSubmitting(false);
+      const data = await res.json();
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setIsError(true);
+        setMessage(data.error ?? "invalid code");
+        return;
+      }
+
+      navigate("/home");
+    } catch (err) {
       setIsError(true);
-      setMessage(data.error ?? "invalid code");
-      return;
+      setMessage("Could not reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate("/home");
   };
 
   return (
