@@ -1,31 +1,35 @@
-import express from "express"
-import dotenv from "dotenv"
-import bcrypt from "bcrypt"
-import { connectDB } from "./config/db.js"
-import { User } from "./models/User.js"
+import express from "express";
+import dotenv from "dotenv";
+import bcrypt from "bcrypt";
+import { connectDB } from "./config/db.js";
+import { User } from "./models/User.js";
 import cors from "cors";
-import { generateSecret, buildUri, createVault, verifyTotpWithDelta } from "2fa-kit"
-import QRCode from "qrcode"
-
+import {
+  generateSecret,
+  buildUri,
+  createVault,
+  verifyTotpWithDelta,
+} from "2fa-kit";
+import QRCode from "qrcode";
+import jwt from "jsonwebtoken";
 
 //configuer dotenv
-dotenv.config()
+dotenv.config();
 
 //mongodb connection
-connectDB()
+connectDB();
 
 //initialize express
-const app = express()
+const app = express();
 
 //middleware
-app.use(express.json())
+app.use(express.json());
 app.use(cors({ origin: "*" }));
 
-
 //routes
-app.get("/", async(req,res)=>{
-    res.send("API is running...")
-})
+app.get("/", async (req, res) => {
+  res.send("API is running...");
+});
 
 //register new user
 app.post("/register", async (req, res) => {
@@ -37,7 +41,8 @@ app.post("/register", async (req, res) => {
   }
 
   const existing = await User.findOne({ email });
-  if (existing) return res.status(400).json({ error: "email already registered" });
+  if (existing)
+    return res.status(400).json({ error: "email already registered" });
 
   //password hashing
   const passwordHash = await bcrypt.hash(password, 10);
@@ -52,15 +57,17 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   const { email, password, code } = req.body;
 
-  //validate email 
+  //validate email
   const user = await User.findOne({ email });
-  if (!user) return res.status(401).json({ error: "invalid email or password" });
+  if (!user)
+    return res.status(401).json({ error: "invalid email or password" });
 
   //check user exist
   const passwordOk = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordOk) return res.status(401).json({ error: "invalid email or password" });
+  if (!passwordOk)
+    return res.status(401).json({ error: "invalid email or password" });
 
-  const vault = await createVault(process.env.MASTER_KEY)
+  const vault = await createVault(process.env.MASTER_KEY);
 
   // if use is not enrolled, no secret yet --> first time, show QR
   if (!user.isEnrolled && !user.totpSecretEncrypted) {
@@ -90,17 +97,24 @@ app.post("/login", async (req, res) => {
     return res.status(401).json({ error: "invalid code" });
   }
 
+  //jwt token
   user.totpLastStep = step;
   if (!user.isEnrolled) user.isEnrolled = true;
   await user.save();
 
-  res.json({ message: "login successful" });
+  const token = jwt.sign(
+    { userId: user._id, email: user.email },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "48h",
+    },
+  );
+
+  res.json({ message: "login successful", token });
 });
 
 //port
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5000;
 
 //listen backend server
-app.listen(PORT, 
-    console.log(`Server running on port ${PORT}`)
-)
+app.listen(PORT, console.log(`Server running on port ${PORT}`));
