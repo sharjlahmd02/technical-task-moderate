@@ -150,9 +150,10 @@ function Customer() {
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const logoutCancelRef = useRef<HTMLButtonElement>(null);
 
-  const handleLogout = () => {
-    navigate("/login");
-  };
+ const handleLogout = () => {
+  localStorage.removeItem("token");
+  navigate("/login");
+};
 
   // loading and error handling
   if (loading)

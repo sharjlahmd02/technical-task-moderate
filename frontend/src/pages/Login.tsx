@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { Box, Button, FormControl, FormLabel, Input, Text, Flex, Heading, Image, Link } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Text,
+  Flex,
+  Heading,
+  Image,
+  Link,
+} from "@chakra-ui/react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL as string;
 
@@ -74,6 +85,7 @@ function Login() {
       });
 
       const data = await res.json();
+      setIsSubmitting(false);
 
       if (!res.ok) {
         setIsError(true);
@@ -81,6 +93,10 @@ function Login() {
         return;
       }
 
+      //dave token
+      localStorage.setItem("token", data.token);
+      console.log(data.message);
+      console.log(data.token);
       navigate("/home");
     } catch (err) {
       setIsError(true);
@@ -92,7 +108,16 @@ function Login() {
 
   return (
     <Flex minH="100vh" align="center" justify="center" bg="gray.50">
-      <Box maxW="400px" w="100%" bg="white" p="8" rounded="lg" boxShadow="md" border="1px solid" borderColor="gray.200">
+      <Box
+        maxW="400px"
+        w="100%"
+        bg="white"
+        p="8"
+        rounded="lg"
+        boxShadow="md"
+        border="1px solid"
+        borderColor="gray.200"
+      >
         <Heading size="lg" mb="6" textAlign="center">
           {step === "credentials" ? "Log in" : "Enter your code"}
         </Heading>
@@ -101,13 +126,28 @@ function Login() {
           <form onSubmit={handleCredentialsSubmit}>
             <FormControl mb="4">
               <FormLabel>Email</FormLabel>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} isDisabled={isSubmitting} />
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                isDisabled={isSubmitting}
+              />
             </FormControl>
             <FormControl mb="4">
               <FormLabel>Password</FormLabel>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} isDisabled={isSubmitting} />
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                isDisabled={isSubmitting}
+              />
             </FormControl>
-            <Button type="submit" colorScheme="blue" width="100%" isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              colorScheme="blue"
+              width="100%"
+              isLoading={isSubmitting}
+            >
               Continue
             </Button>
             <Text mt="4" textAlign="center" fontSize="sm">
@@ -123,22 +163,37 @@ function Login() {
           <form onSubmit={handleCodeSubmit}>
             {qrUrl && (
               <Box textAlign="center" mb="4">
-                <Text mb="2" fontSize="sm" color="gray.600">Scan this with your authenticator app</Text>
+                <Text mb="2" fontSize="sm" color="gray.600">
+                  Scan this with your authenticator app
+                </Text>
                 <Image src={qrUrl} alt="2FA QR code" mx="auto" />
               </Box>
             )}
             <FormControl mb="4">
               <FormLabel>6-digit code</FormLabel>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} isDisabled={isSubmitting} />
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                isDisabled={isSubmitting}
+              />
             </FormControl>
-            <Button type="submit" colorScheme="blue" width="100%" isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              colorScheme="blue"
+              width="100%"
+              isLoading={isSubmitting}
+            >
               Verify
             </Button>
           </form>
         )}
 
         {message && (
-          <Text mt="4" color={isError ? "red.500" : "green.500"} textAlign="center">
+          <Text
+            mt="4"
+            color={isError ? "red.500" : "green.500"}
+            textAlign="center"
+          >
             {message}
           </Text>
         )}
